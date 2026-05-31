@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "548274044484",
+    "project_id": "findfriend-eccc1",
+    "storage_bucket": "findfriend-eccc1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548274044484:android:f4a872ce3f8c1279cb8611",
+        "android_client_info": {
+          "package_name": "com.findfriend.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB7PU16Lrbl4Pf1s14qw8zLt9t2eUOH-8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
