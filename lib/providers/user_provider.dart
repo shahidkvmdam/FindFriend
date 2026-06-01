@@ -358,19 +358,27 @@ class UserProvider with ChangeNotifier {
   }
 
   // Get user by phone number (for finding friends)
-  Future<User?> getUserByPhone(String phoneNumber) async {
+  Future<Map<String, dynamic>> getUserByPhone(String phoneNumber) async {
     try {
       // Try Firestore first
       final firestoreUser = await _firestoreService.getUserByPhone(phoneNumber);
       if (firestoreUser != null) {
-        return firestoreUser;
+        return {'success': true, 'user': firestoreUser, 'source': 'Firestore'};
       }
 
       // Fallback to local database
-      return await _databaseService.getUser(phoneNumber);
+      final localUser = await _databaseService.getUser(phoneNumber);
+      if (localUser != null) {
+        return {'success': true, 'user': localUser, 'source': 'Local'};
+      }
+
+      return {
+        'success': false,
+        'error': 'User not found in Firestore or local database'
+      };
     } catch (e) {
       debugPrint('Error getting user by phone: $e');
-      return null;
+      return {'success': false, 'error': e.toString()};
     }
   }
 

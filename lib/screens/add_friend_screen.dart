@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/friend_provider.dart';
+import '../models/user.dart';
 
 class AddFriendScreen extends StatefulWidget {
   const AddFriendScreen({super.key});
@@ -59,56 +60,85 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
 
     setState(() => _isSearching = true);
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final friendProvider = Provider.of<FriendProvider>(context, listen: false);
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final friendProvider =
+          Provider.of<FriendProvider>(context, listen: false);
 
-    // Search for user by phone number
-    final foundUser =
-        await userProvider.getUserByPhone(_searchPhoneController.text);
+      // Check if current user is logged in
+      if (userProvider.currentUser == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Please register your phone number first')),
+          );
+        }
+        return;
+      }
 
-    setState(() => _isSearching = false);
+      // Search for user by phone number
+      final searchPhone = '+91${_searchPhoneController.text}';
 
-    if (foundUser == null) {
-      if (mounted) {
+      final result = await userProvider.getUserByPhone(searchPhone);
+
+      if (result['success'] == false) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('${result['error']}. Searched for: $searchPhone'),
+                duration: const Duration(seconds: 5)),
+          );
+        }
+        return;
+      }
+
+      final foundUser = result['user'] as User;
+      final source = result['source'] as String;
+
+      // Check if trying to add yourself
+      if (foundUser.id == userProvider.currentUser!.id) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('You cannot add yourself as a friend')),
+          );
+        }
+        return;
+      }
+
+      // Add friend
+      final friendData = {
+        'friendId': foundUser.id,
+        'friendName': foundUser.name,
+        'friendPhoneNumber': foundUser.phoneNumber,
+      };
+
+      final success = await friendProvider.addFriend(
+        userProvider.currentUser!.id,
+        friendData,
+      );
+
+      if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('User not found with this phone number')),
+          SnackBar(
+              content:
+                  Text('${foundUser.name} added as friend (from $source)')),
+        );
+        _searchPhoneController.clear();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Already friends with this user')),
         );
       }
-      return;
-    }
-
-    // Check if trying to add yourself
-    if (foundUser.id == userProvider.currentUser?.id) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You cannot add yourself as a friend')),
+          SnackBar(
+              content: Text('Error: $e'), duration: const Duration(seconds: 5)),
         );
       }
-      return;
-    }
-
-    // Add friend
-    final friendData = {
-      'friendId': foundUser.id,
-      'friendName': foundUser.name,
-      'friendPhoneNumber': foundUser.phoneNumber,
-    };
-
-    final success = await friendProvider.addFriend(
-      userProvider.currentUser!.id,
-      friendData,
-    );
-
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${foundUser.name} added as friend')),
-      );
-      _searchPhoneController.clear();
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Already friends with this user')),
-      );
+    } finally {
+      setState(() => _isSearching = false);
     }
   }
 
