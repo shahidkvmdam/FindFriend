@@ -35,7 +35,7 @@ class User {
       lastSeen: map['lastSeen'] != null
           ? DateTime.parse(map['lastSeen'] as String)
           : null,
-      isOnline: map['isOnline'] as bool? ?? false,
+      isOnline: (map['isOnline'] as int?) == 1,
     );
   }
 }

@@ -12,7 +12,20 @@
           "package_name": "com.findfriend.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "548274044484-otci9gddn703jetb3vtqm31tte4gd3mj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.findfriend.app",
+            "certificate_hash": "b0cfb07be0e3df722928aefba9b9400746e0f7d3"
+          }
+        },
+        {
+          "client_id": "548274044484-pekep9ue7qbp71lkd1isaf3toi9i9gof.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDB7PU16Lrbl4Pf1s14qw8zLt9t2eUOH-8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "548274044484-pekep9ue7qbp71lkd1isaf3toi9i9gof.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

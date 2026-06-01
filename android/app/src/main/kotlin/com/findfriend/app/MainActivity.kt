@@ -1,4 +1,4 @@
-package com.findfriend.findfriend
+package com.findfriend.app
 
 import io.flutter.embedding.android.FlutterActivity
 

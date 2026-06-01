@@ -121,6 +121,12 @@ class DatabaseService {
     return User.fromMap(maps.first);
   }
 
+  Future<List<User>> getAllUsers() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('users');
+    return maps.map((map) => User.fromMap(map)).toList();
+  }
+
   Future<void> updateUser(User user) async {
     final db = await database;
     await db.update(
