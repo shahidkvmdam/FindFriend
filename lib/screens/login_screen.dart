@@ -86,6 +86,31 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final result = await userProvider.signInWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      if (result['isNewUser'] == true) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const ProfileCompletionScreen(),
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'] ?? 'Google sign-in failed')),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _phoneController.dispose();
@@ -152,6 +177,27 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? const CircularProgressIndicator(
                                 color: Colors.white)
                             : const Text('Send OTP'),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('OR'),
+                        ),
+                        Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _signInWithGoogle,
+                        icon: const Icon(Icons.g_mobiledata),
+                        label: const Text('Sign in with Google'),
                       ),
                     ),
                   ] else ...[

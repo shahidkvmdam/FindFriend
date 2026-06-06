@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user.dart';
 import '../services/database_service.dart';
 import '../services/firestore_service.dart';
@@ -9,6 +10,7 @@ class UserProvider with ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
   final FirestoreService _firestoreService = FirestoreService();
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   User? get currentUser => _currentUser;
 
@@ -93,6 +95,43 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  // Sign in with Google
+  Future<Map<String, dynamic>> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return {'success': false, 'error': 'Google sign-in cancelled'};
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = firebase_auth.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final result = await _auth.signInWithCredential(credential);
+      final firebaseUser = result.user;
+      if (firebaseUser == null) {
+        return {'success': false, 'error': 'Sign-in failed'};
+      }
+
+      final existingUser =
+          await _firestoreService.getUserById(firebaseUser.uid);
+      if (existingUser != null) {
+        _currentUser = existingUser;
+        await _firestoreService.updateUserOnlineStatus(existingUser.id, true);
+        notifyListeners();
+        return {'success': true, 'isNewUser': false};
+      }
+
+      return {'success': true, 'isNewUser': true};
+    } catch (e) {
+      debugPrint('Error signing in with Google: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   // Create or update user profile after successful authentication
   Future<String?> createOrUpdateUserProfile({
     required String name,
@@ -105,7 +144,6 @@ class UserProvider with ChangeNotifier {
 
     try {
       final phoneNumber = firebaseUser.phoneNumber;
-      if (phoneNumber == null) return 'Phone number not available';
 
       final user = User(
         id: firebaseUser.uid,

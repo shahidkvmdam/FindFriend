@@ -6,7 +6,8 @@ class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
 
   @override
-  State<ProfileCompletionScreen> createState() => _ProfileCompletionScreenState();
+  State<ProfileCompletionScreen> createState() =>
+      _ProfileCompletionScreenState();
 }
 
 class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
@@ -50,6 +51,8 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile completed successfully')),
       );
+      // Navigate away - AuthWrapper will handle routing to HomeScreen
+      Navigator.of(context).pop();
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to complete profile: $error')),

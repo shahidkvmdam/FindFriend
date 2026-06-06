@@ -23,7 +23,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -43,6 +43,29 @@ class DatabaseService {
       await db.execute('ALTER TABLE users ADD COLUMN sex TEXT');
       await db.execute('ALTER TABLE users ADD COLUMN location TEXT');
     }
+    if (oldVersion < 4) {
+      // Make phoneNumber nullable for Google Sign-In users
+      // SQLite doesn't support ALTER COLUMN directly, so we recreate the table
+      await db.execute('''
+        CREATE TABLE users_new (
+          id TEXT PRIMARY KEY,
+          phoneNumber TEXT,
+          name TEXT NOT NULL,
+          age INTEGER,
+          sex TEXT,
+          location TEXT,
+          createdAt TEXT NOT NULL,
+          lastSeen TEXT,
+          isOnline INTEGER DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO users_new (id, phoneNumber, name, age, sex, location, createdAt, lastSeen, isOnline)
+        SELECT id, phoneNumber, name, age, sex, location, createdAt, lastSeen, isOnline FROM users
+      ''');
+      await db.execute('DROP TABLE users');
+      await db.execute('ALTER TABLE users_new RENAME TO users');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -50,7 +73,7 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
-        phoneNumber TEXT UNIQUE NOT NULL,
+        phoneNumber TEXT,
         name TEXT NOT NULL,
         age INTEGER,
         sex TEXT,

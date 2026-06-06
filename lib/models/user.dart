@@ -1,6 +1,6 @@
 class User {
   final String id;
-  final String phoneNumber;
+  final String? phoneNumber;
   final String name;
   final int? age;
   final String? sex;
@@ -11,7 +11,7 @@ class User {
 
   User({
     required this.id,
-    required this.phoneNumber,
+    this.phoneNumber,
     required this.name,
     this.age,
     this.sex,
@@ -38,7 +38,7 @@ class User {
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
       id: map['id'] as String,
-      phoneNumber: map['phoneNumber'] as String,
+      phoneNumber: map['phoneNumber'] as String?,
       name: map['name'] as String,
       age: map['age'] as int?,
       sex: map['sex'] as String?,
