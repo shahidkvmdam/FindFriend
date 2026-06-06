@@ -94,7 +94,12 @@ class UserProvider with ChangeNotifier {
   }
 
   // Create or update user profile after successful authentication
-  Future<String?> createOrUpdateUserProfile(String name) async {
+  Future<String?> createOrUpdateUserProfile({
+    required String name,
+    int? age,
+    String? sex,
+    String? location,
+  }) async {
     final firebaseUser = _auth.currentUser;
     if (firebaseUser == null) return 'Not authenticated';
 
@@ -106,6 +111,9 @@ class UserProvider with ChangeNotifier {
         id: firebaseUser.uid,
         phoneNumber: phoneNumber,
         name: name,
+        age: age,
+        sex: sex,
+        location: location,
         createdAt: DateTime.now(),
         lastSeen: DateTime.now(),
         isOnline: true,
@@ -220,14 +228,22 @@ class UserProvider with ChangeNotifier {
   }
 
   // Update user profile
-  Future<bool> updateProfile(String name) async {
+  Future<bool> updateProfile({
+    String? name,
+    int? age,
+    String? sex,
+    String? location,
+  }) async {
     if (_currentUser == null) return false;
 
     try {
       final updatedUser = User(
         id: _currentUser!.id,
         phoneNumber: _currentUser!.phoneNumber,
-        name: name,
+        name: name ?? _currentUser!.name,
+        age: age ?? _currentUser!.age,
+        sex: sex ?? _currentUser!.sex,
+        location: location ?? _currentUser!.location,
         createdAt: _currentUser!.createdAt,
         lastSeen: _currentUser!.lastSeen,
         isOnline: _currentUser!.isOnline,

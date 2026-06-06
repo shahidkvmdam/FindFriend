@@ -11,6 +11,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _locationController = TextEditingController();
+  String? _selectedSex;
   final _formKey = GlobalKey<FormState>();
   bool _isEditing = false;
 
@@ -20,12 +23,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     if (userProvider.currentUser != null) {
       _nameController.text = userProvider.currentUser!.name;
+      _ageController.text = userProvider.currentUser!.age?.toString() ?? '';
+      _selectedSex = userProvider.currentUser!.sex;
+      _locationController.text = userProvider.currentUser!.location ?? '';
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _ageController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -33,7 +41,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    await userProvider.updateProfile(_nameController.text);
+    final age = int.tryParse(_ageController.text.trim());
+    await userProvider.updateProfile(
+      name: _nameController.text.trim(),
+      age: age,
+      sex: _selectedSex,
+      location: _locationController.text.trim(),
+    );
 
     setState(() => _isEditing = false);
   }
@@ -63,6 +77,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 setState(() {
                   _isEditing = false;
                   _nameController.text = userProvider.currentUser?.name ?? '';
+                  _ageController.text =
+                      userProvider.currentUser?.age?.toString() ?? '';
+                  _selectedSex = userProvider.currentUser?.sex;
+                  _locationController.text =
+                      userProvider.currentUser?.location ?? '';
                 });
               },
             ),
@@ -98,6 +117,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   return null;
                 },
               ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _ageController,
+              enabled: _isEditing,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Age',
+                prefixIcon: Icon(Icons.cake),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your age';
+                }
+                final age = int.tryParse(value);
+                if (age == null || age < 1 || age > 120) {
+                  return 'Please enter a valid age';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            IgnorePointer(
+              ignoring: !_isEditing,
+              child: DropdownButtonFormField<String>(
+                value: _selectedSex,
+                decoration: const InputDecoration(
+                  labelText: 'Sex',
+                  prefixIcon: Icon(Icons.wc),
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                ),
+                icon: _isEditing ? null : const SizedBox.shrink(),
+                style: Theme.of(context).textTheme.bodyMedium,
+                dropdownColor: Theme.of(context).scaffoldBackgroundColor,
+                items: const [
+                  DropdownMenuItem(value: 'Male', child: Text('Male')),
+                  DropdownMenuItem(value: 'Female', child: Text('Female')),
+                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedSex = value);
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please select your sex';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _locationController,
+              enabled: _isEditing,
+              decoration: const InputDecoration(
+                labelText: 'Location',
+                prefixIcon: Icon(Icons.location_on),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your location';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(

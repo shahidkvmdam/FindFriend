@@ -6,6 +6,7 @@ import 'providers/message_provider.dart';
 import 'providers/friend_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/profile_completion_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +63,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return Consumer<UserProvider>(
       builder: (context, userProvider, _) {
         if (userProvider.isLoggedIn) {
+          final user = userProvider.currentUser;
+          // Check if profile is complete (has name, age, sex, location)
+          if (user == null ||
+              user.name.isEmpty ||
+              user.age == null ||
+              user.sex == null ||
+              user.sex!.isEmpty ||
+              user.location == null ||
+              user.location!.isEmpty) {
+            return const ProfileCompletionScreen();
+          }
           return const HomeScreen();
         }
         return const LoginScreen();

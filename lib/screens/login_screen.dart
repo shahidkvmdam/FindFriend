@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import 'profile_completion_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,7 +13,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
-  final _nameController = TextEditingController();
   final _phoneFormKey = GlobalKey<FormState>();
   final _otpFormKey = GlobalKey<FormState>();
 
@@ -69,74 +69,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
+    setState(() => _isLoading = false);
+
     if (result['success'] == true) {
       if (result['isNewUser'] == true) {
-        setState(() => _isLoading = false);
-        _showNameDialog();
-      } else {
-        setState(() => _isLoading = false);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const ProfileCompletionScreen(),
+          ),
+        );
       }
     } else {
-      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['error'] ?? 'Verification failed')),
       );
     }
   }
 
-  void _showNameDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Complete Your Profile'),
-        content: TextFormField(
-          controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Your Name',
-            hintText: 'Enter your name',
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter your name';
-            }
-            return null;
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              if (_nameController.text.trim().isEmpty) return;
-              Navigator.of(context).pop();
-              setState(() => _isLoading = true);
-
-              final userProvider =
-                  Provider.of<UserProvider>(context, listen: false);
-              final error = await userProvider.createOrUpdateUserProfile(
-                _nameController.text.trim(),
-              );
-
-              if (!mounted) return;
-              setState(() => _isLoading = false);
-
-              if (error != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(error)),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _phoneController.dispose();
     _otpController.dispose();
-    _nameController.dispose();
     super.dispose();
   }
 

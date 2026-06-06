@@ -23,7 +23,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -37,6 +37,12 @@ class DatabaseService {
       await db.execute('DROP TABLE IF EXISTS messages');
       await _onCreate(db, newVersion);
     }
+    if (oldVersion < 3) {
+      // Add new columns to users table
+      await db.execute('ALTER TABLE users ADD COLUMN age INTEGER');
+      await db.execute('ALTER TABLE users ADD COLUMN sex TEXT');
+      await db.execute('ALTER TABLE users ADD COLUMN location TEXT');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -46,6 +52,9 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         phoneNumber TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
+        age INTEGER,
+        sex TEXT,
+        location TEXT,
         createdAt TEXT NOT NULL,
         lastSeen TEXT,
         isOnline INTEGER DEFAULT 0
