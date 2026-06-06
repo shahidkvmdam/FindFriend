@@ -109,9 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               _stopMessageListening();
               await userProvider.logout();
-              if (mounted) {
-                Navigator.of(context).pushReplacementNamed('/');
-              }
             },
           ),
         ],

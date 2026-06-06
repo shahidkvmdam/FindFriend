@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../models/user.dart';
 import '../services/database_service.dart';
 import '../services/firestore_service.dart';
@@ -7,10 +8,7 @@ class UserProvider with ChangeNotifier {
   User? _currentUser;
   final DatabaseService _databaseService = DatabaseService();
   final FirestoreService _firestoreService = FirestoreService();
-
-  // Firebase Authentication (commented out for now)
-  // final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
-  // final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
 
   User? get currentUser => _currentUser;
 
@@ -23,214 +21,107 @@ class UserProvider with ChangeNotifier {
   // Initialize and check if user is already logged in
   Future<void> initializeAuth() async {
     try {
-      // Load user from local database
-      final users = await _databaseService.getAllUsers();
-      if (users.isNotEmpty) {
-        _currentUser = users.first;
-        // Sync to Firestore
-        await _firestoreService.createOrUpdateUser(_currentUser!);
-        // Set online status
-        await _firestoreService.updateUserOnlineStatus(_currentUser!.id, true);
-        notifyListeners();
+      final firebaseUser = _auth.currentUser;
+      if (firebaseUser != null) {
+        final user = await _firestoreService.getUserById(firebaseUser.uid);
+        if (user != null) {
+          _currentUser = user;
+          await _firestoreService.updateUserOnlineStatus(user.id, true);
+          notifyListeners();
+        }
       }
     } catch (e) {
       debugPrint('Error initializing auth: $e');
     }
   }
 
-  // ===== FIREBASE PHONE AUTHENTICATION (COMMENTED OUT) =====
-  /*
   // Verify phone number and send OTP
   Future<void> verifyPhoneNumber(
     String phoneNumber,
-    Function(String verificationId) onCodeSent,
+    Function(String verificationId, int? resendToken) onCodeSent,
     Function(String errorMessage) onError,
   ) async {
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
+        timeout: const Duration(seconds: 60),
         verificationCompleted:
             (firebase_auth.PhoneAuthCredential credential) async {
-          // Auto-retrieval or instant verification
           await _auth.signInWithCredential(credential);
         },
         verificationFailed: (firebase_auth.FirebaseAuthException e) {
           onError(e.message ?? 'Verification failed');
         },
         codeSent: (String verificationId, int? resendToken) {
-          onCodeSent(verificationId);
+          onCodeSent(verificationId, resendToken);
         },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          // Handle timeout
-        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (e) {
       onError(e.toString());
     }
   }
 
-  // Sign in with OTP
-  Future<String?> signInWithOTP(String verificationId, String smsCode) async {
+  // Sign in with OTP and load/create profile
+  Future<Map<String, dynamic>> signInWithOTP(
+      String verificationId, String smsCode) async {
     try {
-      debugPrint('Attempting to sign in with OTP');
-      debugPrint('Verification ID: $verificationId');
-      debugPrint('SMS Code: $smsCode');
-
       final credential = firebase_auth.PhoneAuthProvider.credential(
         verificationId: verificationId,
         smsCode: smsCode,
       );
 
-      await _auth.signInWithCredential(credential);
-      debugPrint('Sign in successful');
-      return null; // Success, no error
+      final result = await _auth.signInWithCredential(credential);
+      final firebaseUser = result.user;
+      if (firebaseUser == null) {
+        return {'success': false, 'error': 'Sign-in failed'};
+      }
+
+      final existingUser =
+          await _firestoreService.getUserById(firebaseUser.uid);
+      if (existingUser != null) {
+        _currentUser = existingUser;
+        await _firestoreService.updateUserOnlineStatus(existingUser.id, true);
+        notifyListeners();
+        return {'success': true, 'isNewUser': false};
+      }
+
+      return {'success': true, 'isNewUser': true};
     } catch (e) {
       debugPrint('Error signing in with OTP: $e');
-      return e.toString();
+      return {'success': false, 'error': e.toString()};
     }
   }
 
   // Create or update user profile after successful authentication
-  Future<bool> createOrUpdateUserProfile(String name) async {
+  Future<String?> createOrUpdateUserProfile(String name) async {
     final firebaseUser = _auth.currentUser;
-    if (firebaseUser == null) return false;
+    if (firebaseUser == null) return 'Not authenticated';
 
     try {
       final phoneNumber = firebaseUser.phoneNumber;
-      if (phoneNumber == null) return false;
+      if (phoneNumber == null) return 'Phone number not available';
 
-      // Check if user already exists in Firestore
-      final existingUser =
-          await _firestoreService.getUserById(firebaseUser.uid);
-
-      User user;
-      if (existingUser != null) {
-        // Update existing user
-        user = User(
-          id: existingUser.id,
-          phoneNumber: phoneNumber,
-          name: name,
-          createdAt: existingUser.createdAt,
-          lastSeen: existingUser.lastSeen,
-          isOnline: true,
-        );
-      } else {
-        // Create new user
-        user = User(
-          id: firebaseUser.uid,
-          phoneNumber: phoneNumber,
-          name: name,
-          createdAt: DateTime.now(),
-          lastSeen: DateTime.now(),
-          isOnline: true,
-        );
-      }
-
-      // Save to Firestore
-      await _firestoreService.createOrUpdateUser(user);
-
-      // Sync to local database
-      await _syncUserToLocal(user);
-
-      _currentUser = user;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      debugPrint('Error creating/updating user profile: $e');
-      return false;
-    }
-  }
-  */
-
-  // ===== GOOGLE SIGN-IN (COMMENTED OUT) =====
-  /*
-  Future<String?> signInWithGoogle() async {
-    try {
-      debugPrint('Starting Google Sign-In');
-
-      // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        // User canceled the sign-in
-        debugPrint('User canceled Google Sign-In');
-        return 'Sign-in was canceled';
-      }
-
-      debugPrint('Google user obtained: ${googleUser.email}');
-
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      debugPrint('Google auth obtained');
-      debugPrint('Access token: ${googleAuth.accessToken}');
-      debugPrint('ID token: ${googleAuth.idToken}');
-
-      // Create a new credential
-      final credential = firebase_auth.GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      final user = User(
+        id: firebaseUser.uid,
+        phoneNumber: phoneNumber,
+        name: name,
+        createdAt: DateTime.now(),
+        lastSeen: DateTime.now(),
+        isOnline: true,
       );
 
-      debugPrint('Firebase credential created');
-
-      // Sign in to Firebase with the Google credentials
-      final firebase_auth.UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-
-      debugPrint('Firebase sign-in successful');
-      debugPrint('User ID: ${userCredential.user!.uid}');
-      debugPrint('Display name: ${userCredential.user!.displayName}');
-
-      // Check if user exists in Firestore
-      final existingUser =
-          await _firestoreService.getUserById(userCredential.user!.uid);
-
-      User user;
-      if (existingUser != null) {
-        user = existingUser;
-        user = User(
-          id: existingUser.id,
-          phoneNumber: existingUser.phoneNumber,
-          name: existingUser.name,
-          createdAt: existingUser.createdAt,
-          lastSeen: DateTime.now(),
-          isOnline: true,
-        );
-        debugPrint('Existing user found in Firestore');
-      } else {
-        // Create new user with Google account info
-        user = User(
-          id: userCredential.user!.uid,
-          phoneNumber: '', // No phone number for Google Sign-In
-          name: userCredential.user!.displayName ?? 'User',
-          createdAt: DateTime.now(),
-          lastSeen: DateTime.now(),
-          isOnline: true,
-        );
-        debugPrint('Creating new user in Firestore');
-      }
-
-      // Save to Firestore
       await _firestoreService.createOrUpdateUser(user);
-      debugPrint('User saved to Firestore');
-
-      // Sync to local database
-      await _syncUserToLocal(user);
-      debugPrint('User synced to local database');
+      await _databaseService.insertUser(user);
 
       _currentUser = user;
       notifyListeners();
-      debugPrint('Google Sign-In completed successfully');
-      return null; // Success, no error
+      return null;
     } catch (e) {
-      debugPrint('Error signing in with Google: $e');
-      debugPrint('Error type: ${e.runtimeType}');
+      debugPrint('Error creating/updating user profile: $e');
       return e.toString();
     }
   }
-  */
 
   // ===== LOCAL AUTHENTICATION (CURRENTLY ACTIVE) =====
 
@@ -321,10 +212,10 @@ class UserProvider with ChangeNotifier {
   // Logout
   Future<void> logout() async {
     if (_currentUser != null) {
-      // Set offline status before logout
       await _firestoreService.updateUserOnlineStatus(_currentUser!.id, false);
     }
     _currentUser = null;
+    await _auth.signOut();
     notifyListeners();
   }
 

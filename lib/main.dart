@@ -5,6 +5,7 @@ import 'providers/user_provider.dart';
 import 'providers/message_provider.dart';
 import 'providers/friend_provider.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,9 +30,42 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true,
         ),
-        home: const LoginScreen(),
+        home: const AuthWrapper(),
         debugShowCheckedModeBanner: false,
       ),
+    );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.initializeAuth();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, _) {
+        if (userProvider.isLoggedIn) {
+          return const HomeScreen();
+        }
+        return const LoginScreen();
+      },
     );
   }
 }
