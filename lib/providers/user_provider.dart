@@ -262,6 +262,7 @@ class UserProvider with ChangeNotifier {
     }
     _currentUser = null;
     await _auth.signOut();
+    await _googleSignIn.signOut();
     notifyListeners();
   }
 

@@ -23,7 +23,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -65,6 +65,10 @@ class DatabaseService {
       ''');
       await db.execute('DROP TABLE users');
       await db.execute('ALTER TABLE users_new RENAME TO users');
+    }
+    if (oldVersion < 5) {
+      // Add type column to messages table and set default value for existing messages
+      await db.execute('ALTER TABLE messages ADD COLUMN type INTEGER DEFAULT 0');
     }
   }
 

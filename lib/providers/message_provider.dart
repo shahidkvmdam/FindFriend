@@ -16,7 +16,9 @@ class MessageProvider with ChangeNotifier {
   // Load messages between two users from local database
   Future<void> loadMessages(String userId1, String userId2) async {
     try {
+      debugPrint('Loading messages: userId1=$userId1, userId2=$userId2');
       _messages = await _databaseService.getMessages(userId1, userId2);
+      debugPrint('Loaded ${_messages.length} messages from database');
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading messages: $e');
@@ -25,10 +27,12 @@ class MessageProvider with ChangeNotifier {
 
   // Start listening for incoming messages from Firestore
   void startListeningForMessages(String userId) {
+    debugPrint('Starting to listen for messages for userId: $userId');
     _messageSubscription?.cancel();
     _messageSubscription =
         _firestoreService.streamMessagesForUser(userId).listen(
       (messages) async {
+        debugPrint('Received ${messages.length} messages from Firestore');
         for (var message in messages) {
           // Save to local database
           await _databaseService.insertMessage(message);
@@ -58,6 +62,7 @@ class MessageProvider with ChangeNotifier {
   Future<bool> sendTextMessage(
       String senderId, String receiverId, String content) async {
     try {
+      debugPrint('Sending message: sender=$senderId, receiver=$receiverId, content=$content');
       final message = Message(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         senderId: senderId,
@@ -68,11 +73,14 @@ class MessageProvider with ChangeNotifier {
 
       // Send to Firestore for delivery
       await _firestoreService.sendMessage(message);
+      debugPrint('Message sent to Firestore');
 
       // Also save to local database for sender
       await _databaseService.insertMessage(message);
+      debugPrint('Message saved to local database');
 
       _messages.add(message);
+      debugPrint('Message added to list, total messages: ${_messages.length}');
       notifyListeners();
       return true;
     } catch (e) {

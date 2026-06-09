@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../models/message.dart';
 
@@ -112,6 +113,7 @@ class FirestoreService {
   Future<void> sendMessage(Message message) async {
     try {
       final messageId = DateTime.now().millisecondsSinceEpoch.toString();
+      debugPrint('Sending to Firestore: id=$messageId, sender=${message.senderId}, receiver=${message.receiverId}');
       await _messagesCollection.doc(messageId).set({
         'id': messageId,
         'senderId': message.senderId,
@@ -121,7 +123,9 @@ class FirestoreService {
         'isRead': message.isRead,
         'delivered': false,
       });
+      debugPrint('Message sent to Firestore successfully');
     } catch (e) {
+      debugPrint('Failed to send message to Firestore: $e');
       throw Exception('Failed to send message: $e');
     }
   }

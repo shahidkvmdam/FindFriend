@@ -29,6 +29,32 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _loadMessages();
+    _startListening();
+    // Listen for message changes to auto-scroll
+    final messageProvider = Provider.of<MessageProvider>(context, listen: false);
+    messageProvider.addListener(_onMessagesChanged);
+  }
+
+  void _onMessagesChanged() {
+    // Scroll to bottom when messages are updated
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  void _startListening() {
+    debugPrint('_startListening called');
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final messageProvider =
+        Provider.of<MessageProvider>(context, listen: false);
+
+    debugPrint('currentUser: ${userProvider.currentUser}');
+    if (userProvider.currentUser != null) {
+      debugPrint('Starting message listening for userId: ${userProvider.currentUser!.id}');
+      messageProvider.startListeningForMessages(userProvider.currentUser!.id);
+    } else {
+      debugPrint('currentUser is null, cannot start listening');
+    }
   }
 
   Future<void> _loadMessages() async {
@@ -62,13 +88,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() => _isLoading = true);
 
-    await messageProvider.sendTextMessage(
+    final success = await messageProvider.sendTextMessage(
       userProvider.currentUser!.id,
       widget.friendId,
       _messageController.text.trim(),
     );
 
-    _messageController.clear();
+    if (success) {
+      _messageController.clear();
+      // Reload messages to ensure they're displayed
+      await _loadMessages();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to send message. Firebase may not be configured.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
     setState(() => _isLoading = false);
     _scrollToBottom();
   }
@@ -245,5 +283,15 @@ class _ChatScreenState extends State<ChatScreen> {
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    final messageProvider =
+        Provider.of<MessageProvider>(context, listen: false);
+    messageProvider.removeListener(_onMessagesChanged);
+    messageProvider.stopListeningForMessages();
+    super.dispose();
   }
 }

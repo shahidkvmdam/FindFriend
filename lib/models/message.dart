@@ -5,6 +5,7 @@ class Message {
   final String content;
   final DateTime timestamp;
   final bool isRead;
+  final int type; // 0 for text, 1 for image, etc.
 
   Message({
     required this.id,
@@ -13,6 +14,7 @@ class Message {
     required this.content,
     required this.timestamp,
     this.isRead = false,
+    this.type = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +25,7 @@ class Message {
       'content': content,
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead ? 1 : 0,
+      'type': type,
     };
   }
 
@@ -34,6 +37,7 @@ class Message {
       content: map['content'] as String,
       timestamp: DateTime.parse(map['timestamp'] as String),
       isRead: (map['isRead'] as int) == 1,
+      type: map['type'] as int? ?? 0,
     );
   }
 }
